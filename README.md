@@ -1,5 +1,5 @@
 # axum-tenancy
-Multi tenant support for Axum web apps
+Multi tenant support for [Axum](https://crates.io/crates/axum) web apps
 
 Making it easy to get started on a multi-tenant web app, builds on [axum-login](https://crates.io/crates/axum-login)
 
