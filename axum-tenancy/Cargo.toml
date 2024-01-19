@@ -5,7 +5,7 @@ edition = "2021"
 description = "Multi tenant support for Axum web app."
 homepage = "https://github.com/dave42w/axum-tenancy"
 license = "MIT"
-keywords = ["tenancy", "tenant", "multi-tenant","authentication", "authorization", "login", "axum", "sessions"]
+keywords = ["tenancy", "tenant", "multi-tenant", "login", "axum"]
 categories = [
     "web-programming::http-server",
     "web-programming",
