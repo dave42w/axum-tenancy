@@ -1,0 +1,20 @@
+[package]
+name = "axum-tenancy"
+version = "0.1.0"
+edition = "2021"
+description = "Multi tenant support for Axum web app."
+homepage = "https://github.com/dave42w/axum-tenancy"
+license = "MIT"
+keywords = ["tenancy", "tenant", "multi-tenant","authentication", "authorization", "login", "axum", "sessions"]
+categories = [
+    "web-programming::http-server",
+    "web-programming",
+    "database",
+    "asynchronous",
+]
+repository = "https://github.com/dave42w/axum-tenancy"
+readme = "../README.md"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
