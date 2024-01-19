@@ -6,4 +6,7 @@ publish = false
 
 [dependencies]
 axum-tenancy = { path = "../../axum-tenancy" }
+dotenvy = "0.15.7"
+libsqlite3-sys = "0.27.0"
+sqlx = { version = "0.7.3", features = ["sqlite", "runtime-tokio", "chrono", "macros"] }
 
