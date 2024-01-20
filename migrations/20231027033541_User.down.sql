@@ -1,0 +1,5 @@
+DROP INDEX IF EXISTS idxUserEmail;
+DROP INDEX IF EXISTS idxUserMobilePhone;
+
+DROP TABLE IF EXISTS User;
+

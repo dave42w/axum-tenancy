@@ -17,4 +17,14 @@ readme = "../README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+chrono = { version = "0.4.31", features = ["serde"] }
+dotenvy = "0.15.7"
+serde = { version = "1.0.195", features = ["derive"] }
+
+libsqlite3-sys = "0.27.0"
+sqlx = { version = "0.7.3", features = ["sqlite", "runtime-tokio", "chrono", "uuid", "macros"] }
+uuid = { version = "1.7.0", features = ["v4", "serde"] }
+
+[profile.dev.package.sqlx-macros]
+opt-level = 3
 
