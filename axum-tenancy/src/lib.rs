@@ -22,49 +22,45 @@
 # SOFTWARE.
 */
 
-use sqlx;
+//use sqlx::{self, Postgres};
+use anyhow::Context;
+use axum_sqlx_tx;
 
 mod admin;
 
-pub fn initialize() {
-    println!("Initialize axum-tenancy");
+type Tx = axum_sqlx_tx::Tx<sqlx::Any>;
+type DbPool = sqlx::AnyPool;
+
+cfg_if::cfg_if! {
+    if #[cfg(feature = "sqlite")] {
+        //type Tx = axum_sqlx_tx::Tx<sqlx::Sqlite>;
+        //type DbPool = sqlx::SqlitePool;
+        pub const SQLX_DB: &str = "sqlite";
+    } else if #[cfg(feature = "postgres")] {
+        //type Tx = axum_sqlx_tx::Tx<sqlx::Postgres>;
+        //type DbPool = sqlx::PgPool;
+        pub const SQLX_DB: &str = "postgres";
+    } else {
+        //type Tx = axum_sqlx_tx::Tx<sqlx::Sqlite>;
+        //type DbPool = sqlx::SqlitePool;
+        pub const SQLX_DB: &str = "No Database Feature set in your Cargo.toml, should be sqlite or postgres";
+    }
 }
 
-#[cfg(test)]
-use sqlx::postgres::PgPool;
-
-#[test]
-fn initialize_without_panic() {
-    initialize();
-}
-
-#[sqlx::test]
-async fn add_appuser(pool: PgPool) -> sqlx::Result<()> {
-    sqlx::query!(
-        r#"
-        INSERT INTO AppUser (
-            id, 
-            user_name, 
-            hash_password, 
-            display_name, 
-            is_admin, 
-            email,
-            mobile_phone
-        )
-        VALUES (
-            'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 
-            'Dave42W',
-            '0',
-            'Dave Warnock',
-            TRUE,
-            'dwarnock@gmail.com',
-            '07886 553376'
-        )
-        "#
-    )
-    .execute(&pool)
-    .await?;
+pub async fn initialize(pool: &DbPool) -> anyhow::Result<()> {
+    assert!(SQLX_DB.ne("No Database Feature set in your Cargo.toml, should be sqlite or postgres"));
+    println!("Initializing axum-tenancy for DB: {}", SQLX_DB);
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "sqlite")] {
+            sqlx::migrate!("migrations/sqlite").run(pool).await?;
+        } else if #[cfg(feature = "postgres")] {
+            sqlx::migrate!("migrations/postgres").run(pool).await?;
+        } else {
+            assert!("Migration not possible, no DB feature");
+        } 
+    }
     Ok(())
-    
 }
+
+
 

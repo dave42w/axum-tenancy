@@ -1,3 +1,4 @@
+/*
 # MIT License
 # 
 # Copyright (c) 2024 Dave Warnock
@@ -19,9 +20,18 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+*/
 
-DROP INDEX IF EXISTS idxUserEmail;
-DROP INDEX IF EXISTS idxUserMobilePhone;
-
-DROP TABLE IF EXISTS AppUser;
+use axum_tenancy;
+use sqlx::any::{install_default_drivers, AnyPoolOptions};
+ 
+#[tokio::main]
+async fn main() {
+    println!("Hello, world!");
+    install_default_drivers();
+    let pool_options = AnyPoolOptions::new();
+    let uri = "postgresql://localhost?dbname=axum-tenancy&user=dave&password=hazene42";
+    let pool = pool_options.connect(uri).await.unwrap();
+    axum_tenancy::initialize(&pool).await;
+}
 
