@@ -22,15 +22,20 @@
 # SOFTWARE.
 */
 
+use std::env;
+use dotenvy::dotenv;
 use axum_tenancy;
 use sqlx::any::{install_default_drivers, AnyPoolOptions};
+use sqlx::Pool;
  
 #[tokio::main]
 async fn main() {
     println!("Hello, world!");
+    dotenv().expect(".env file not found");
+    let _server_uri: String = env::var("SERVER_URI").expect(".env missing SERVER");
+    let database_url: String = env::var("DATABASE_URL").expect(".env missing DATABASE_URL") ;
     install_default_drivers();
     let pool_options = AnyPoolOptions::new();
-    let uri = "sqlite:axum-tenancy.sqlite?mode=rwc";
-    let pool = pool_options.connect(uri).await.unwrap();
-    axum_tenancy::initialize(&pool).await;
+    let pool: Pool<sqlx::Any> = pool_options.connect(&database_url).await.unwrap();
+    let _ = axum_tenancy::initialize(&pool).await;
 }

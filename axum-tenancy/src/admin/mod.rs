@@ -22,6 +22,6 @@
 # SOFTWARE.
 */
 
-mod appuser;
+mod user;
 
 

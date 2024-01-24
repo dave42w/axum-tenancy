@@ -22,16 +22,24 @@
 # SOFTWARE.
 */
 
+use std::env;
+use dotenvy::dotenv;
 use axum_tenancy;
 use sqlx::any::{install_default_drivers, AnyPoolOptions};
+use sqlx::Pool;
+
  
 #[tokio::main]
 async fn main() {
     println!("Hello, world!");
+    dotenv().expect(".env file not found");
+    let _server_uri: String = env::var("SERVER_URI").expect(".env missing SERVER");
+    let database_url: String = env::var("DATABASE_PARTIAL_URL").expect(".env missing DATABASE_URL") ;
+    let database_pw: String = env::var("DATABASE_PW").expect(".env missing DATABASE_PW");
     install_default_drivers();
     let pool_options = AnyPoolOptions::new();
-    let uri = "postgresql://localhost?dbname=axum-tenancy&user=dave&password=testing";
-    let pool = pool_options.connect(uri).await.unwrap();
-    axum_tenancy::initialize(&pool).await;
+    let uri = format!("{}={}", database_url, database_pw);
+    let pool: Pool<sqlx::Any> = pool_options.connect(&uri).await.unwrap();
+    let _ = axum_tenancy::initialize(&pool).await;
 }
 

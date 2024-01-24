@@ -22,7 +22,7 @@
 # SOFTWARE.
 */
 
-use anyhow::Context;
+use sqlx::Pool;
 
 mod admin;
 
@@ -36,7 +36,7 @@ cfg_if::cfg_if! {
     }
 }
 
-pub async fn initialize(pool: &DbPool) -> anyhow::Result<()> {
+pub async fn initialize(pool: &Pool<sqlx::Any>) -> anyhow::Result<()> {
     assert!(SQLX_DB.ne("No Database Feature set in your Cargo.toml, should be sqlite or postgres"));
     println!("Initializing axum-tenancy for DB: {}", SQLX_DB);
     cfg_if::cfg_if! {
@@ -45,7 +45,9 @@ pub async fn initialize(pool: &DbPool) -> anyhow::Result<()> {
         } else if #[cfg(feature = "postgres")] {
             sqlx::migrate!("migrations/postgres").run(pool).await?;
         } else {
-            assert!("Migration not possible, no DB feature");
+            assert_eq!("No Db feature", "In Cargo.toml for axum-tenancy");
+            // never yet here but ensure that pool is used
+            sqlx::migrate!("migrations/sqlite").run(pool).await?;
         } 
     }
     Ok(())
