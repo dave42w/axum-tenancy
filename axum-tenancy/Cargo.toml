@@ -47,7 +47,7 @@ libsqlite3-sys = "0.27.0"
 postgres = { version = "0.19.7", features = ["with-chrono-0_4", "with-uuid-1"] }
 sqlx = { version = "0.7.3", features = ["postgres", "sqlite", "any", "runtime-tokio", "tls-rustls", "chrono", "uuid", "macros", "migrate"] }
 uuid = { version = "1.7.0", features = ["v4", "serde"] }
-axum-sqlx-tx = { version = "0.8.0", features = ["postgres", "sqlite"] }
+###axum-sqlx-tx = { version = "0.8.0", features = ["postgres", "sqlite"] }
 cfg-if = "1.0.0"
 anyhow = "1.0.79"
 

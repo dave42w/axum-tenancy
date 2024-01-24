@@ -22,27 +22,16 @@
 # SOFTWARE.
 */
 
-//use sqlx::{self, Postgres};
 use anyhow::Context;
-use axum_sqlx_tx;
 
 mod admin;
 
-type Tx = axum_sqlx_tx::Tx<sqlx::Any>;
-type DbPool = sqlx::AnyPool;
-
 cfg_if::cfg_if! {
     if #[cfg(feature = "sqlite")] {
-        //type Tx = axum_sqlx_tx::Tx<sqlx::Sqlite>;
-        //type DbPool = sqlx::SqlitePool;
         pub const SQLX_DB: &str = "sqlite";
     } else if #[cfg(feature = "postgres")] {
-        //type Tx = axum_sqlx_tx::Tx<sqlx::Postgres>;
-        //type DbPool = sqlx::PgPool;
         pub const SQLX_DB: &str = "postgres";
     } else {
-        //type Tx = axum_sqlx_tx::Tx<sqlx::Sqlite>;
-        //type DbPool = sqlx::SqlitePool;
         pub const SQLX_DB: &str = "No Database Feature set in your Cargo.toml, should be sqlite or postgres";
     }
 }

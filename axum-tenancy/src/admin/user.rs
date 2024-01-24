@@ -23,12 +23,10 @@
 */
 
 use serde::{Deserialize, Serialize};
-//use sqlx::Error;
-//use super::super::Tx;
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct AppUser {
-    pub id: uuid::Uuid,
+pub struct User {
+    pub user_id: uuid::Uuid,
     pub user_name: String,
     pub display_name: String,
     pub is_admin: bool,
@@ -36,10 +34,10 @@ pub struct AppUser {
     pub mobile_phone: String,
 }
 
-impl Default for AppUser {
-    fn default() -> AppUser {
-        AppUser {
-            id: uuid::Uuid::new_v4(),
+impl Default for User {
+    fn default() -> User {
+        User {
+            user_id: uuid::Uuid::new_v4(),
             user_name: "".to_string(),
             display_name: "".to_string(),
             is_admin: true,
@@ -50,8 +48,8 @@ impl Default for AppUser {
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
-pub struct AppUsers {
-    users: Vec<AppUser>,
+pub struct Users {
+    users: Vec<User>,
 }
 /*
 pub fn create_routes() -> Router<AppState<'static>> {
