@@ -30,7 +30,7 @@ async fn main() {
     println!("Hello, world!");
     install_default_drivers();
     let pool_options = AnyPoolOptions::new();
-    let uri = "postgresql://localhost?dbname=axum-tenancy&user=dave&password=hazene42";
+    let uri = "postgresql://localhost?dbname=axum-tenancy&user=dave&password=testing";
     let pool = pool_options.connect(uri).await.unwrap();
     axum_tenancy::initialize(&pool).await;
 }

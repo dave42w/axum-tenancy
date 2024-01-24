@@ -23,9 +23,14 @@
 */
 
 use axum_tenancy;
-
-fn main() {
+use sqlx::any::{install_default_drivers, AnyPoolOptions};
+ 
+#[tokio::main]
+async fn main() {
     println!("Hello, world!");
-    axum_tenancy::initialize();
+    install_default_drivers();
+    let pool_options = AnyPoolOptions::new();
+    let uri = "sqlite:axum-tenancy.sqlite?mode=rwc";
+    let pool = pool_options.connect(uri).await.unwrap();
+    axum_tenancy::initialize(&pool).await;
 }
-

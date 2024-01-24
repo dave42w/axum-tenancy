@@ -31,4 +31,6 @@ axum-tenancy = { path = "../../axum-tenancy", features = ["sqlite"] }
 dotenvy = "0.15.7"
 libsqlite3-sys = "0.27.0"
 sqlx = { version = "0.7.3", features = ["sqlite", "runtime-tokio", "chrono", "macros"] }
+tokio = { version = "1.35.1", features = ["macros", "rt-multi-thread"] }
+axum = "0.7.4"
 
