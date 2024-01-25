@@ -32,6 +32,3 @@ CREATE TABLE IF NOT EXISTS "user" (
     UNIQUE (display_name)
 );
 
-CREATE INDEX IF NOT EXISTS idxUserEmail ON "user" (email);
-
-CREATE INDEX IF NOT EXISTS idxUserMobilePhone ON "user" (mobile_phone);

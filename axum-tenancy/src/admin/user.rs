@@ -118,9 +118,10 @@ use sqlx::PgPool;
 async fn check_insert_method(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
     let tx: &mut sqlx::Transaction<'_, sqlx::Postgres> = &mut pool.begin().await?;
 
-    // test that you can insert a user but not insert a duplicxate user
+    // test that you can insert a user but not insert a duplicate user by any of the unique columns
     assert_eq!(insert(tx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await.is_ok(), true);
-    assert_eq!(insert(tx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await.is_err(), true);
+    assert_eq!(insert(tx, "Dave", "not Dave Warnock", true, "notdwarnock@test.com", "66601234567891").await.is_err(), true);
+    assert_eq!(insert(tx, "NotDave", "Dave Warnock", true, "notdwarnock@test.com", "666001234567891").await.is_err(), true);
     Ok(())
 }
 

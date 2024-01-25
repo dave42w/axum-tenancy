@@ -34,7 +34,4 @@ CREATE TABLE IF NOT EXISTS "user" (
     UNIQUE (display_name)
 ) WITHOUT ROWID;
 
-CREATE INDEX IF NOT EXISTS idxUserEmail ON AppUser (email);
-
-CREATE INDEX IF NOT EXISTS idxUserMobilePhone ON AppUser (mobile_phone);
 
