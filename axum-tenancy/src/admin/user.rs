@@ -23,6 +23,7 @@
 */
 
 use serde::{Deserialize, Serialize};
+use sqlx::Error;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct User {
@@ -75,27 +76,27 @@ pub async fn list(
 }
 */
 
-/*
+
 #[allow(dead_code)]
-async fn insert(
-    mut tx: Tx,
+pub async fn insert(
+    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     user_name: &str,
     display_name: &str,
     is_admin: bool,
     email: &str,
     mobile_phone: &str,
 ) -> Result<(), Error> {
-    let id = uuid::Uuid::new_v4();
+    let user_id = uuid::Uuid::new_v4();
     let hash_password = "".to_string();
 
     sqlx::query!(
         r#"
-        INSERT INTO AppUser 
-        (id, user_name, hash_password, display_name, is_admin, email, mobile_phone) 
+        INSERT INTO "user" 
+        (user_id, user_name, hash_password, display_name, is_admin, email, mobile_phone) 
         VALUES
         ($1, $2, $3, $4, $5, $6, $7)
         "#,
-        id,
+        user_id,
         user_name,
         hash_password,
         display_name,
@@ -103,26 +104,23 @@ async fn insert(
         email,
         mobile_phone
     )
-    .execute(&mut tx)
+    .execute(&mut **transaction)
     .await?;
     Ok(())
 }
-*/
 
-/*
-Waiting for how to get a axum-sqlx-tx transaction out of the pool
+
+
 #[cfg(test)]
 use sqlx::PgPool;
-use sqlx::Postgres;
-use sqlx::Transaction;
 
-#[sqlx::test]
+#[sqlx::test(migrations = "migrations/postgres")]
 async fn check_insert_method(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
-    let pgTx: Tx = pool.begin().await.unwrap().into();
+    let tx: &mut sqlx::Transaction<'_, sqlx::Postgres> = &mut pool.begin().await?;
 
     // test that you can insert a user but not insert a duplicxate user
-    assert_eq!(insert(pgTx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await.is_ok(), true);
-    assert_eq!(insert(pgTx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await.is_err(), true);
+    assert_eq!(insert(tx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await.is_ok(), true);
+    assert_eq!(insert(tx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await.is_err(), true);
     Ok(())
 }
-*/
+
