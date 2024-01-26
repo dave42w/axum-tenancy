@@ -22,6 +22,6 @@
 # SOFTWARE.
 */
 
-mod user;
+pub mod user;
 
 

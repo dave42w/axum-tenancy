@@ -25,8 +25,10 @@
 use std::env;
 use dotenvy::dotenv;
 use axum_tenancy;
-use sqlx::any::{install_default_drivers, AnyPoolOptions};
-use sqlx::Pool;
+use sqlx::any::install_default_drivers;
+use sqlx::PgPool;
+use sqlx::postgres::PgPoolOptions;
+
 
  
 #[tokio::main]
@@ -36,10 +38,14 @@ async fn main() {
     let _server_uri: String = env::var("SERVER_URI").expect(".env missing SERVER");
     let database_url: String = env::var("DATABASE_PARTIAL_URL").expect(".env missing DATABASE_URL") ;
     let database_pw: String = env::var("DATABASE_PW").expect(".env missing DATABASE_PW");
-    install_default_drivers();
-    let pool_options = AnyPoolOptions::new();
+    //install_default_drivers();
+    let pool_options = PgPoolOptions::new();
     let uri = format!("{}={}", database_url, database_pw);
-    let pool: Pool<sqlx::Any> = pool_options.connect(&uri).await.unwrap();
+    println!("uri:{}",&uri);
+    //let pool: Pool<sqlx::PgPool> = pool_options.connect(&uri).await.unwrap();
+    let pool = pool_options.connect(&uri).await.unwrap();
+    println!("pool created");
     let _ = axum_tenancy::initialize(&pool).await;
+    println!("init donei");
 }
 

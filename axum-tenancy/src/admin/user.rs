@@ -22,12 +22,13 @@
 # SOFTWARE.
 */
 
+use anyhow::{anyhow, Result, Error};
 use serde::{Deserialize, Serialize};
-use sqlx::Error;
+use uuid::Uuid;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct User {
-    pub user_id: uuid::Uuid,
+    pub user_id: Uuid,
     pub user_name: String,
     pub display_name: String,
     pub is_admin: bool,
@@ -38,7 +39,7 @@ pub struct User {
 impl Default for User {
     fn default() -> User {
         User {
-            user_id: uuid::Uuid::new_v4(),
+            user_id: Uuid::new_v4(),
             user_name: "".to_string(),
             display_name: "".to_string(),
             is_admin: true,
@@ -79,22 +80,82 @@ pub async fn list(
 
 #[allow(dead_code)]
 pub async fn insert(
-    transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     user_name: &str,
     display_name: &str,
     is_admin: bool,
     email: &str,
     mobile_phone: &str,
-) -> Result<(), Error> {
-    let user_id = uuid::Uuid::new_v4();
+) -> Result<uuid::Uuid, Error> {
+    let user_id = Uuid::new_v4();
     let hash_password = "".to_string();
-
-    sqlx::query!(
+    let r = sqlx::query!(
         r#"
         INSERT INTO "user" 
         (user_id, user_name, hash_password, display_name, is_admin, email, mobile_phone) 
         VALUES
         ($1, $2, $3, $4, $5, $6, $7)
+        "#,
+        &user_id,
+        user_name,
+        hash_password,
+        display_name,
+        is_admin,
+        email,
+        mobile_phone
+    )
+    .execute(&mut **tx)
+    .await;
+
+    match r {
+        Ok(qr) => {
+            if qr.rows_affected() == 1 {
+                return Ok(user_id);
+            } else {
+                return Err(anyhow!("Insert did not return 1 row affected:{}",qr.rows_affected()));
+            }
+        }
+        Err(e) => Err(e.into()),
+    }
+}
+
+#[allow(dead_code)]
+pub async fn load_by_id(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    user_id: Uuid)
+-> Result<User, sqlx::Error> {
+    sqlx::query_as!(
+        User,
+        r#"SELECT user_id, user_name, display_name, is_admin, email, mobile_phone from "user" where user_id = $1"#,
+        &user_id
+    )
+    .fetch_one(&mut **tx)
+    .await
+}
+
+#[allow(dead_code)]
+pub async fn update(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    user_id: &Uuid,
+    user_name: &str,
+    display_name: &str,
+    is_admin: bool,
+    email: &str,
+    mobile_phone: &str,
+) -> Result<u64, Error> {
+    let hash_password = "".to_string();
+
+    let r = sqlx::query!(
+        r#"
+        UPDATE "user" 
+            SET user_name = $2,
+                hash_password = $3, 
+                display_name = $4, 
+                is_admin = $5, 
+                email = $6, 
+                mobile_phone = $7 
+            WHERE
+                user_id = $1
         "#,
         user_id,
         user_name,
@@ -104,24 +165,61 @@ pub async fn insert(
         email,
         mobile_phone
     )
-    .execute(&mut **transaction)
-    .await?;
-    Ok(())
-}
+    .execute(&mut **tx)
+    .await;
 
+    match r {
+        Ok(qr) => return Ok(qr.rows_affected()),
+        Err(e) => Err(e.into()),
+    }
+}
 
 
 #[cfg(test)]
-use sqlx::PgPool;
+mod tests {
+    use sqlx::PgPool;
+    use super::*;
 
-#[sqlx::test(migrations = "migrations/postgres")]
-async fn check_insert_method(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
-    let tx: &mut sqlx::Transaction<'_, sqlx::Postgres> = &mut pool.begin().await?;
+    #[sqlx::test(migrations = "migrations/postgres")]
+    async fn insert_user_no_dup_user_name(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
+        let mut tx = pool.begin().await?;
+        let ru = insert(&mut tx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await;
+        assert_eq!(&ru.is_ok(), &true);
+        assert_eq!(insert(&mut tx, "Dave", "not Dave Warnock", true, "dwarnock@test.com", "01234567891").await.is_err(), true);
 
-    // test that you can insert a user but not insert a duplicate user by any of the unique columns
-    assert_eq!(insert(tx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await.is_ok(), true);
-    assert_eq!(insert(tx, "Dave", "not Dave Warnock", true, "notdwarnock@test.com", "66601234567891").await.is_err(), true);
-    assert_eq!(insert(tx, "NotDave", "Dave Warnock", true, "notdwarnock@test.com", "666001234567891").await.is_err(), true);
-    Ok(())
+        Ok(())
+    }
+
+    #[sqlx::test(migrations = "migrations/postgres")]
+    async fn insert_user_no_dup_display_name(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
+        let mut tx = pool.begin().await?;
+        let ru = insert(&mut tx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await;
+        assert_eq!(&ru.is_ok(), &true);
+        assert_eq!(insert(&mut tx, "NotDave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await.is_err(), true);
+
+        Ok(())
+    }
+
+    #[sqlx::test(migrations = "migrations/postgres")]
+    async fn insert_then_check_load_user(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
+        let mut tx = pool.begin().await?;
+        let ru = insert(&mut tx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await;
+        assert_eq!(&ru.is_ok(), &true);
+
+        let uid = ru.unwrap_or_default();
+        assert_ne!(&uid.to_string(), ""); // uuid must not be empty
+
+        let ur = load_by_id(&mut tx, uid).await;
+        assert_eq!(&ur.is_ok(), &true);  // load_by_id reult is ok
+        
+        let u = ur.unwrap_or_default();
+        assert_eq!(&u.user_id, &uid);
+        assert_eq!(&u.user_name.to_string(), &"Dave");
+        assert_eq!(&u.display_name.to_string(), &"Dave Warnock");
+        assert_eq!(&u.is_admin, &true);
+        assert_eq!(&u.email.to_string(), &"dwarnock@test.com");
+        assert_eq!(&u.mobile_phone.to_string(), &"01234567891");
+
+        Ok(())
+    }
 }
-
