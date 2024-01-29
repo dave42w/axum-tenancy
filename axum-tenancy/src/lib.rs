@@ -26,7 +26,7 @@ use anyhow::Ok;
 use sqlx::PgPool;
 
 pub mod admin;
-use crate::admin::user::{insert, load_by_id}; 
+use crate::admin::user::{insert, load_by_id, UserSort}; 
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "sqlite")] {
@@ -71,6 +71,7 @@ pub async fn initialize(pool: &PgPool) -> anyhow::Result<()> {
     let ur = load_by_id(tx, uid).await;
     let u = ur.unwrap_or_default();
     println!("u.user_name: {}", u.user_name);
+    eprintln!("sort:{}",UserSort::UserName.as_str());
     Ok(())
 }
 
