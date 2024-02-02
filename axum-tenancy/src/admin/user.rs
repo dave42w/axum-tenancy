@@ -49,6 +49,20 @@ impl Default for User {
     }
 }
 
+pub enum SortDirection {
+    Asc,
+    Desc,
+}
+
+impl SortDirection {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            SortDirection::Asc => "ASC",
+            SortDirection::Desc => "DESC"
+        }
+    }
+}
+
 pub enum UserSort {
     UserName,
     DisplayName,
@@ -61,7 +75,9 @@ impl UserSort {
             UserSort::DisplayName => "display_name"
         }
     }
-}/*
+}
+
+/*
 pub fn create_routes() -> Router<AppState<'static>> {
     Router::new()
         .route("/", get(list))
@@ -145,21 +161,34 @@ pub async fn load_by_id(
 #[allow(dead_code)]
 pub async fn load_all_sorted(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    sort: UserSort)
+    sort: UserSort,
+    direction: SortDirection)
 -> Result<Vec<User>, sqlx::Error> {
-   match sort {
-        UserSort::UserName => {
+    match direction {
+        SortDirection::Asc => {
             sqlx::query_as!(
                 User,
-                r#"SELECT user_id, user_name, display_name, is_admin, email, mobile_phone FROM "user" ORDER BY user_name ASC"#
+                r#"SELECT user_id, user_name, display_name, is_admin, email, mobile_phone FROM "user" ORDER BY 
+                    CASE 
+                          WHEN $1 = 'user_name' THEN user_name
+                          WHEN $1 = 'display_name' THEN display_name
+                    END ASC
+                "#,
+                sort.as_str()
             )
             .fetch_all(&mut **tx)
             .await
         }
-        UserSort::DisplayName => {
+        SortDirection::Desc => {
             sqlx::query_as!(
                 User,
-                r#"SELECT user_id, user_name, display_name, is_admin, email, mobile_phone FROM "user" ORDER BY display_name ASC"#
+                r#"SELECT user_id, user_name, display_name, is_admin, email, mobile_phone FROM "user" ORDER BY 
+                    CASE 
+                          WHEN $1 = 'user_name' THEN user_name
+                          WHEN $1 = 'display_name' THEN display_name
+                    END DESC
+                "#,
+                sort.as_str()
             )
             .fetch_all(&mut **tx)
             .await
@@ -300,7 +329,46 @@ mod tests {
         let inserted_uuid2 = user_result2.unwrap_or_default();
         assert_ne!(&inserted_uuid2.to_string(), ""); // uuid must not be empty
 
-        let load_result = load_all_sorted(&mut tx, UserSort::UserName).await;
+        let load_result = load_all_sorted(&mut tx, UserSort::UserName, SortDirection::Asc).await;
+        assert_eq!(&load_result.is_ok(), &true);  // load_by_id reult is ok
+        let vec_users = &load_result.unwrap();
+        assert_eq!(&vec_users.len(), &2usize);  // load_by_id reult is ok
+        
+        let loaded_user2 = &vec_users[0];
+        assert_eq!(&loaded_user2.user_id, &inserted_uuid2);
+        assert_eq!(&loaded_user2.user_name.to_string(), &"Dave2");
+        assert_eq!(&loaded_user2.display_name.to_string(), &"Dave Warnock2");
+        assert_eq!(&loaded_user2.is_admin, &false);
+        assert_eq!(&loaded_user2.email.to_string(), &"dwarnock@test.com2");
+        assert_eq!(&loaded_user2.mobile_phone.to_string(), &"012345678912");
+
+        let loaded_user1 = &vec_users[1];
+        assert_eq!(&loaded_user1.user_id, &inserted_uuid1);
+        assert_eq!(&loaded_user1.user_name.to_string(), &"zDave");
+        assert_eq!(&loaded_user1.display_name.to_string(), &"Dave Warnock");
+        assert_eq!(&loaded_user1.is_admin, &true);
+        assert_eq!(&loaded_user1.email.to_string(), &"dwarnock@test.com");
+        assert_eq!(&loaded_user1.mobile_phone.to_string(), &"01234567891");
+
+        Ok(())
+    }
+
+    #[sqlx::test(migrations = "migrations/postgres")]
+    async fn insert_two_check_sort_desc(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
+        let mut tx = pool.begin().await?;
+        let user_result1 = insert(&mut tx, "zDave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await;
+        assert_eq!(&user_result1.is_ok(), &true);
+
+        let inserted_uuid1 = user_result1.unwrap_or_default();
+        assert_ne!(&inserted_uuid1.to_string(), ""); // uuid must not be empty
+
+        let user_result2 = insert(&mut tx, "Dave2", "Dave Warnock2", false, "dwarnock@test.com2", "012345678912").await;
+        assert_eq!(&user_result2.is_ok(), &true);
+
+        let inserted_uuid2 = user_result2.unwrap_or_default();
+        assert_ne!(&inserted_uuid2.to_string(), ""); // uuid must not be empty
+
+        let load_result = load_all_sorted(&mut tx, UserSort::DisplayName, SortDirection::Desc).await;
         assert_eq!(&load_result.is_ok(), &true);  // load_by_id reult is ok
         let vec_users = &load_result.unwrap();
         assert_eq!(&vec_users.len(), &2usize);  // load_by_id reult is ok
