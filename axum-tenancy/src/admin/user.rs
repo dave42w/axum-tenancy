@@ -22,87 +22,11 @@
 # SOFTWARE.
 */
 
-use anyhow::{anyhow, Result, Error};
-use serde::{Deserialize, Serialize};
+use anyhow::{Result, Error};
 use uuid::Uuid;
+use axum_tenancy_postgres::admin_postgres::user_postgres;
+use axum_tenancy_core::admin_core::user_core::{User, UserSort, SortDirection};
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct User {
-    pub user_id: Uuid,
-    pub user_name: String,
-    pub display_name: String,
-    pub is_admin: bool,
-    pub email: String,
-    pub mobile_phone: String,
-}
-
-impl Default for User {
-    fn default() -> User {
-        User {
-            user_id: Uuid::new_v4(),
-            user_name: "".to_string(),
-            display_name: "".to_string(),
-            is_admin: true,
-            email: "".to_string(),
-            mobile_phone: "".to_string(),
-        }
-    }
-}
-
-pub enum SortDirection {
-    Asc,
-    Desc,
-}
-
-impl SortDirection {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            SortDirection::Asc => "ASC",
-            SortDirection::Desc => "DESC"
-        }
-    }
-}
-
-pub enum UserSort {
-    UserName,
-    DisplayName,
-}
-
-impl UserSort {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            UserSort::UserName => "user_name",
-            UserSort::DisplayName => "display_name"
-        }
-    }
-}
-
-/*
-pub fn create_routes() -> Router<AppState<'static>> {
-    Router::new()
-        .route("/", get(list))
-        //.route("/:id", get(display))
-        //.route("/add", get(add))
-        //.route("/edit/:id", get(edit))
-        //.route("/insert", post(insert))
-        //.route("/delete/:id", post(delete))
-    //.route("/password/:id", get(get_password))
-    //.route("/password/:id", post(set_password))
-
-}
-
-pub async fn list(
-    mut tx: Tx,
-    Query(params): Query<HashMap<String, String>>,
-) -> impl IntoResponse {
-    let appusers = list_all(tx).await;
-
-    render_into_response(state, "admin/user/list.html", &page)
-}
-*/
-
-
-#[allow(dead_code)]
 pub async fn insert(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     user_name: &str,
@@ -111,92 +35,24 @@ pub async fn insert(
     email: &str,
     mobile_phone: &str,
 ) -> Result<uuid::Uuid, Error> {
-    let user_id = Uuid::new_v4();
-    let hash_password = "".to_string();
-    let r = sqlx::query!(
-        r#"
-        INSERT INTO "user" 
-        (user_id, user_name, hash_password, display_name, is_admin, email, mobile_phone) 
-        VALUES
-        ($1, $2, $3, $4, $5, $6, $7)
-        "#,
-        &user_id,
-        user_name,
-        hash_password,
-        display_name,
-        is_admin,
-        email,
-        mobile_phone
-    )
-    .execute(&mut **tx)
-    .await;
-
-    match r {
-        Ok(qr) => {
-            if qr.rows_affected() == 1 {
-                return Ok(user_id);
-            } else {
-                return Err(anyhow!("Insert did not return 1 row affected:{}",qr.rows_affected()));
-            }
-        }
-        Err(e) => Err(e.into()),
-    }
+    user_postgres::insert_postgres(tx, user_name, display_name, is_admin, email, mobile_phone).await
 }
 
-#[allow(dead_code)]
 pub async fn load_by_id(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     user_id: Uuid)
 -> Result<User, sqlx::Error> {
-    sqlx::query_as!(
-        User,
-        r#"SELECT user_id, user_name, display_name, is_admin, email, mobile_phone from "user" where user_id = $1"#,
-        &user_id
-    )
-    .fetch_one(&mut **tx)
-    .await
+    user_postgres::load_by_id_postgres(tx, user_id).await
 }
 
-// currently if I pass the field name for order by using bind it is ignored TODO!
-#[allow(dead_code)]
 pub async fn load_all_sorted(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     sort: UserSort,
     direction: SortDirection)
 -> Result<Vec<User>, sqlx::Error> {
-    match direction {
-        SortDirection::Asc => {
-            sqlx::query_as!(
-                User,
-                r#"SELECT user_id, user_name, display_name, is_admin, email, mobile_phone FROM "user" ORDER BY 
-                    CASE 
-                          WHEN $1 = 'user_name' THEN user_name
-                          WHEN $1 = 'display_name' THEN display_name
-                    END ASC
-                "#,
-                sort.as_str()
-            )
-            .fetch_all(&mut **tx)
-            .await
-        }
-        SortDirection::Desc => {
-            sqlx::query_as!(
-                User,
-                r#"SELECT user_id, user_name, display_name, is_admin, email, mobile_phone FROM "user" ORDER BY 
-                    CASE 
-                          WHEN $1 = 'user_name' THEN user_name
-                          WHEN $1 = 'display_name' THEN display_name
-                    END DESC
-                "#,
-                sort.as_str()
-            )
-            .fetch_all(&mut **tx)
-            .await
-        }
-    }
+    user_postgres::load_all_sorted_postgres(tx, sort, direction).await
 }
 
-#[allow(dead_code)]
 pub async fn update(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     user_id: &Uuid,
@@ -206,35 +62,7 @@ pub async fn update(
     email: &str,
     mobile_phone: &str,
 ) -> Result<u64, Error> {
-    let hash_password = "".to_string();
-
-    let r = sqlx::query!(
-        r#"
-        UPDATE "user" 
-            SET user_name = $2,
-                hash_password = $3, 
-                display_name = $4, 
-                is_admin = $5, 
-                email = $6, 
-                mobile_phone = $7 
-            WHERE
-                user_id = $1
-        "#,
-        user_id,
-        user_name,
-        hash_password,
-        display_name,
-        is_admin,
-        email,
-        mobile_phone
-    )
-    .execute(&mut **tx)
-    .await;
-
-    match r {
-        Ok(qr) => return Ok(qr.rows_affected()),
-        Err(e) => Err(e.into()),
-    }
+    user_postgres::update_postgres(tx, user_id, user_name, display_name, is_admin, email, mobile_phone).await
 }
 
 

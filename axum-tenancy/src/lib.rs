@@ -26,7 +26,6 @@ use anyhow::Ok;
 use sqlx::PgPool;
 
 pub mod admin;
-use crate::admin::user::{insert, load_by_id, UserSort}; 
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "sqlite")] {
@@ -39,9 +38,10 @@ cfg_if::cfg_if! {
 }
 
 //pub async fn initialize(pool: &Pool<sqlx::AnyPool>) -> anyhow::Result<()> {
-pub async fn initialize(pool: &PgPool) -> anyhow::Result<()> {
+pub async fn initialize(_pool: &PgPool) -> anyhow::Result<()> {
     assert!(SQLX_DB.ne("No Database Feature set in your Cargo.toml, should be sqlite or postgres"));
     println!("Initializing axum-tenancy for DB: {}", SQLX_DB);
+    //admin_postgres::user_postgres::insert();
 /*    
     //cfg_if::cfg_if! {
     //    if #[cfg(feature = "sqlite")] {
@@ -56,7 +56,8 @@ pub async fn initialize(pool: &PgPool) -> anyhow::Result<()> {
     //}
 */    
 
-    println!("pre migrate");
+ /*
+    * println!("pre migrate");
     sqlx::migrate!("migrations/postgres").run(pool).await?;
     println!("migrated");
 
@@ -72,6 +73,7 @@ pub async fn initialize(pool: &PgPool) -> anyhow::Result<()> {
     let u = ur.unwrap_or_default();
     println!("u.user_name: {}", u.user_name);
     eprintln!("sort:{}",UserSort::UserName.as_str());
+    */
     Ok(())
 }
 

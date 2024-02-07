@@ -21,10 +21,10 @@
 # SOFTWARE.
 
 [package]
-name = "axum-tenancy"
+name = "axum-tenancy-core"
 version = "0.1.0"
 edition = "2021"
-description = "Multi tenant support for Axum web app."
+description = "Core db code for axum-tenancy."
 homepage = "https://github.com/dave42w/axum-tenancy"
 license = "MIT"
 keywords = ["tenancy", "tenant", "multi-tenant", "login", "axum"]
@@ -40,23 +40,8 @@ readme = "../README.md"
 
 [dependencies]
 chrono = { version = "0.4.33", features = ["serde"] }
-dotenvy = "0.15.7"
 serde = { version = "1.0.196", features = ["derive"] }
-
-libsqlite3-sys = "0.27.0"
-postgres = { version = "0.19.7", features = ["with-chrono-0_4", "with-uuid-1"] }
-sqlx = { version = "0.7.3", features = ["postgres", "sqlite", "any", "runtime-tokio", "tls-rustls", "chrono", "uuid", "macros", "migrate"] }
 uuid = { version = "1.7.0", features = ["v4", "serde"] }
-###axum-sqlx-tx = { version = "0.8.0", features = ["postgres", "sqlite"] }
-cfg-if = "1.0.0"
-anyhow = "1.0.79"
-askama = { version = "0.12.1", features = ["with-axum"] }
-#axum-tenancy-postgres = { path = "../axum-tenancy-postgres" }
-axum-tenancy-core = { path = "../axum-tenancy-core" }
-axum-tenancy-postgres = { path = "../axum-tenancy-postgres" }
 
-[features]
-sqlite = []
-postgres = []
 
 

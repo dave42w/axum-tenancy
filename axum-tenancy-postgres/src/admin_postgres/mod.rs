@@ -1,3 +1,4 @@
+/*
 # MIT License
 # 
 # Copyright (c) 2024 Dave Warnock
@@ -19,13 +20,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+*/
 
+pub mod user_postgres;
 
-[workspace]
-resolver = "2"
-members = ["axum-tenancy", "axum-tenancy-postgres", "axum-tenancy-core", "examples/*"]
-default-members = ["axum-tenancy"]
-
-[profile.dev.package.sqlx-macros]
-opt-level = 3
 

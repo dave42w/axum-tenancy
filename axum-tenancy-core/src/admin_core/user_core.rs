@@ -1,3 +1,4 @@
+/*
 # MIT License
 # 
 # Copyright (c) 2024 Dave Warnock
@@ -19,13 +20,58 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+*/
 
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
-[workspace]
-resolver = "2"
-members = ["axum-tenancy", "axum-tenancy-postgres", "axum-tenancy-core", "examples/*"]
-default-members = ["axum-tenancy"]
+#[derive(Serialize, Deserialize, Debug)]
+pub struct User {
+    pub user_id: Uuid,
+    pub user_name: String,
+    pub display_name: String,
+    pub is_admin: bool,
+    pub email: String,
+    pub mobile_phone: String,
+}
 
-[profile.dev.package.sqlx-macros]
-opt-level = 3
+impl Default for User {
+    fn default() -> User {
+        User {
+            user_id: Uuid::new_v4(),
+            user_name: "".to_string(),
+            display_name: "".to_string(),
+            is_admin: true,
+            email: "".to_string(),
+            mobile_phone: "".to_string(),
+        }
+    }
+}
 
+pub enum SortDirection {
+    Asc,
+    Desc,
+}
+
+impl SortDirection {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            SortDirection::Asc => "ASC",
+            SortDirection::Desc => "DESC"
+        }
+    }
+}
+
+pub enum UserSort {
+    UserName,
+    DisplayName,
+}
+
+impl UserSort {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            UserSort::UserName => "user_name",
+            UserSort::DisplayName => "display_name"
+        }
+    }
+}
