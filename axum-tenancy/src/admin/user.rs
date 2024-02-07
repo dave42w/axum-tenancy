@@ -67,11 +67,11 @@ pub async fn update(
 
 
 #[cfg(test)]
-mod tests {
+mod tests_postgres {
     use sqlx::PgPool;
     use super::*;
 
-    #[sqlx::test(migrations = "migrations/postgres")]
+    #[sqlx::test(migrations = "../axum-tenancy-postgres/migrations")]
     async fn insert_user_no_dup_user_name(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
         let mut tx = pool.begin().await?;
         let user_result = insert(&mut tx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await;
@@ -81,7 +81,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(migrations = "migrations/postgres")]
+    #[sqlx::test(migrations = "../axum-tenancy-postgres/migrations")]
     async fn insert_user_no_dup_display_name(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
         let mut tx = pool.begin().await?;
         let user_result = insert(&mut tx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await;
@@ -91,7 +91,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(migrations = "migrations/postgres")]
+    #[sqlx::test(migrations = "../axum-tenancy-postgres/migrations")]
     async fn insert_then_check_load_user(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
         let mut tx = pool.begin().await?;
         let user_result = insert(&mut tx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await;
@@ -114,7 +114,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(migrations = "migrations/postgres")]
+    #[sqlx::test(migrations = "../axum-tenancy-postgres/migrations")]
     async fn insert_update_then_check(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
         let mut tx = pool.begin().await?;
         let insert_result = insert(&mut tx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await;
@@ -142,7 +142,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(migrations = "migrations/postgres")]
+    #[sqlx::test(migrations = "../axum-tenancy-postgres/migrations")]
     async fn insert_two_check_load_all(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
         let mut tx = pool.begin().await?;
         let user_result1 = insert(&mut tx, "zDave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await;
@@ -181,7 +181,7 @@ mod tests {
         Ok(())
     }
 
-    #[sqlx::test(migrations = "migrations/postgres")]
+    #[sqlx::test(migrations = "../axum-tenancy-postgres/migrations")]
     async fn insert_two_check_sort_desc(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
         let mut tx = pool.begin().await?;
         let user_result1 = insert(&mut tx, "zDave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await;
