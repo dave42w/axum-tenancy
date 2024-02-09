@@ -30,9 +30,12 @@ pub mod admin;
 cfg_if::cfg_if! {
     if #[cfg(feature = "sqlite")] {
         pub const SQLX_DB: &str = "sqlite";
+        const POSTGRES: bool = false;
     } else if #[cfg(feature = "postgres")] {
+        const POSTGRES: bool = true;
         pub const SQLX_DB: &str = "postgres";
     } else {
+        const POSTGRES: bool = false;
         pub const SQLX_DB: &str = "No Database Feature set in your Cargo.toml, should be sqlite or postgres";
     }
 }

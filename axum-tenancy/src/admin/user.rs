@@ -24,8 +24,11 @@
 
 use anyhow::{Result, Error};
 use uuid::Uuid;
-use axum_tenancy_postgres::admin_postgres::user_postgres;
 use axum_tenancy_core::admin_core::user_core::{User, UserSort, SortDirection};
+
+use axum_tenancy_postgres::admin_postgres::user_postgres;
+
+use crate::POSTGRES;
 
 pub async fn insert(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
@@ -62,14 +65,38 @@ pub async fn update(
     email: &str,
     mobile_phone: &str,
 ) -> Result<u64, Error> {
-    user_postgres::update_postgres(tx, user_id, user_name, display_name, is_admin, email, mobile_phone).await
+    if POSTGRES {
+        user_postgres::update_postgres(tx, user_id, user_name, display_name, is_admin, email, mobile_phone).await
+    } else {
+        user_postgres::update_postgres(tx, user_id, user_name, display_name, is_admin, email, mobile_phone).await
+        
+    }
 }
 
+// TODO
+// make const POSTGRES an enum, use match to decide which db calls are done
+#[cfg(test)]
+mod tests_tokio {
+    #[tokio::test(flavor = "multi_thread")]
+    async fn tokio_test() {
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "postgres")] {
+                assert!(true);
+                const POSTGRES: bool = true;
+            } else {
+                assert!(false);
+                const POSTGRES: bool = false;
+            }
+        }
+        assert!(POSTGRES);
+    }
+}
 
 #[cfg(test)]
 mod tests_postgres {
     use sqlx::PgPool;
     use super::*;
+    const POSTGRES: bool = true;
 
     #[sqlx::test(migrations = "../axum-tenancy-postgres/migrations")]
     async fn insert_user_no_dup_user_name(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {

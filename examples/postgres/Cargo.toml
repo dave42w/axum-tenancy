@@ -27,7 +27,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-axum-tenancy = { path = "../../axum-tenancy", features = ["postgres"] }
+axum-tenancy = { path = "../../axum-tenancy" }
 dotenvy = "0.15.7"
 postgres = { version = "0.19.7", features = ["with-chrono-0_4", "with-uuid-1"] }
 uuid = { version = "1.7.0", features = ["v4", "serde"] }
