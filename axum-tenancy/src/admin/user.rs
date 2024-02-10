@@ -102,17 +102,6 @@ mod tests_tokio {
         
     #[tokio::test(flavor = "multi_thread")]
     async fn tokio_test() {
-        /*
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "postgres")] {
-                assert!(true);
-                const POSTGRES: bool = true;
-            } else {
-                assert!(false);
-                const POSTGRES: bool = false;
-            }
-        }
-        */
         assert_eq!(ACTIVE_DB, ActiveDb::Postgres);
     }
 }
