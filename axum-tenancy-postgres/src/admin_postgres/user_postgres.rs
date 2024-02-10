@@ -23,6 +23,7 @@
 */
 
 use anyhow::{anyhow, Result, Error};
+use sqlx::any::AnyQueryResult;
 use uuid::Uuid;
 use axum_tenancy_core::admin_core::user_core::{User, UserSort, SortDirection};
 
@@ -118,41 +119,29 @@ pub async fn load_all_sorted_postgres(
 
 pub async fn update_postgres(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    user_id: &Uuid,
-    user_name: &str,
-    display_name: &str,
-    is_admin: bool,
-    email: &str,
-    mobile_phone: &str,
-) -> Result<u64, Error> {
-    let hash_password = "".to_string();
+    u: &User,
+) -> Result<sqlx::postgres::PgQueryResult, sqlx::Error> {
 
-    let r = sqlx::query!(
+    sqlx::query!(
         r#"
         UPDATE "user" 
             SET user_name = $2,
-                hash_password = $3, 
-                display_name = $4, 
-                is_admin = $5, 
-                email = $6, 
-                mobile_phone = $7 
+                display_name = $3, 
+                is_admin = $4, 
+                email = $5, 
+                mobile_phone = $6 
             WHERE
                 user_id = $1
         "#,
-        user_id,
-        user_name,
-        hash_password,
-        display_name,
-        is_admin,
-        email,
-        mobile_phone
+        u.user_id,
+        u.user_name,
+        u.display_name,
+        u.is_admin,
+        u.email,
+        u.mobile_phone
     )
     .execute(&mut **tx)
-    .await;
-
-    match r {
-        Ok(qr) => return Ok(qr.rows_affected()),
-        Err(e) => Err(e.into()),
-    }
+    .await
 }
+
 

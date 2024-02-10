@@ -23,27 +23,25 @@
 */
 
 use anyhow::Ok;
+use axum_tenancy_core::ActiveDb;
 use sqlx::PgPool;
 
 pub mod admin;
 
 cfg_if::cfg_if! {
     if #[cfg(feature = "sqlite")] {
-        pub const SQLX_DB: &str = "sqlite";
-        const POSTGRES: bool = false;
+        pub const ACTIVE_DB: ActiveDb = ActiveDb::Sqlite;
     } else if #[cfg(feature = "postgres")] {
-        const POSTGRES: bool = true;
-        pub const SQLX_DB: &str = "postgres";
+        pub const ACTIVE_DB: ActiveDb = ActiveDb::Postgres;
     } else {
-        const POSTGRES: bool = false;
-        pub const SQLX_DB: &str = "No Database Feature set in your Cargo.toml, should be sqlite or postgres";
+        pub const ACTIVE_DB: ActiveDb = ActiveDb::Undefined;
     }
 }
 
 //pub async fn initialize(pool: &Pool<sqlx::AnyPool>) -> anyhow::Result<()> {
 pub async fn initialize(_pool: &PgPool) -> anyhow::Result<()> {
-    assert!(SQLX_DB.ne("No Database Feature set in your Cargo.toml, should be sqlite or postgres"));
-    println!("Initializing axum-tenancy for DB: {}", SQLX_DB);
+    //assert!(SQLX_DB.ne("No Database Feature set in your Cargo.toml, should be sqlite or postgres"));
+    println!("Initializing axum-tenancy for DB: {:?}", ACTIVE_DB);
     //admin_postgres::user_postgres::insert();
 /*    
     //cfg_if::cfg_if! {

@@ -22,13 +22,13 @@
 # SOFTWARE.
 */
 
+use axum_tenancy_core::ActiveDb;
+use crate::ACTIVE_DB;
 use anyhow::{Result, Error};
 use uuid::Uuid;
 use axum_tenancy_core::admin_core::user_core::{User, UserSort, SortDirection};
 
 use axum_tenancy_postgres::admin_postgres::user_postgres;
-
-use crate::POSTGRES;
 
 pub async fn insert(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
@@ -47,7 +47,6 @@ pub async fn load_by_id(
 -> Result<User, sqlx::Error> {
     user_postgres::load_by_id_postgres(tx, user_id).await
 }
-
 pub async fn load_all_sorted(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     sort: UserSort,
@@ -65,20 +64,45 @@ pub async fn update(
     email: &str,
     mobile_phone: &str,
 ) -> Result<u64, Error> {
-    if POSTGRES {
-        user_postgres::update_postgres(tx, user_id, user_name, display_name, is_admin, email, mobile_phone).await
-    } else {
-        user_postgres::update_postgres(tx, user_id, user_name, display_name, is_admin, email, mobile_phone).await
-        
+    let u = User {
+        user_id: *user_id,
+        user_name: user_name.to_string(),
+        display_name: display_name.to_string(),
+        is_admin,
+        email: email.to_string(),
+        mobile_phone: mobile_phone.to_string(),
+    };
+    match ACTIVE_DB {
+        ActiveDb::Postgres => {
+            let r = user_postgres::update_postgres(tx, &u).await;
+            match r {
+                Ok(qr) => return Ok(qr.rows_affected()),
+                Err(e) => Err(e.into()),
+            }
+        }
+        ActiveDb::Sqlite => Err(Error::msg("No sqlite db code")),
+        ActiveDb::Undefined => Err(Error::msg("Undefined db not supported")),    
     }
 }
 
-// TODO
-// make const POSTGRES an enum, use match to decide which db calls are done
+
 #[cfg(test)]
 mod tests_tokio {
+    use axum_tenancy_core::ActiveDb;
+
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "sqlite")] {
+            pub const ACTIVE_DB: ActiveDb = ActiveDb::Sqlite;
+        } else if #[cfg(feature = "postgres")] {
+            pub const ACTIVE_DB: ActiveDb = ActiveDb::Postgres;
+        } else {
+            pub const ACTIVE_DB: ActiveDb = ActiveDb::Undefined;
+        }
+    }
+        
     #[tokio::test(flavor = "multi_thread")]
     async fn tokio_test() {
+        /*
         cfg_if::cfg_if! {
             if #[cfg(feature = "postgres")] {
                 assert!(true);
@@ -88,7 +112,8 @@ mod tests_tokio {
                 const POSTGRES: bool = false;
             }
         }
-        assert!(POSTGRES);
+        */
+        assert_eq!(ACTIVE_DB, ActiveDb::Postgres);
     }
 }
 
@@ -96,7 +121,6 @@ mod tests_tokio {
 mod tests_postgres {
     use sqlx::PgPool;
     use super::*;
-    const POSTGRES: bool = true;
 
     #[sqlx::test(migrations = "../axum-tenancy-postgres/migrations")]
     async fn insert_user_no_dup_user_name(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {

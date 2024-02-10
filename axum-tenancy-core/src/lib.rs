@@ -25,5 +25,11 @@
 pub mod admin_core;
 
 
+#[derive(PartialEq, Eq, Debug)]
+pub enum ActiveDb {
+    Postgres,
+    Sqlite,
+    Undefined
+}
 
 
