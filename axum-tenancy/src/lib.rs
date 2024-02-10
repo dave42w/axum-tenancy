@@ -22,9 +22,15 @@
 # SOFTWARE.
 */
 
+
 use anyhow::Ok;
+use std::env;
+use dotenvy::dotenv;
+
 use axum_tenancy_core::ActiveDb;
-use sqlx::PgPool;
+use sqlx::AnyPool;
+use sqlx::pool::{Pool, PoolOptions};
+use sqlx::any::install_default_drivers;
 
 pub mod admin;
 
@@ -38,10 +44,28 @@ cfg_if::cfg_if! {
     }
 }
 
-//pub async fn initialize(pool: &Pool<sqlx::AnyPool>) -> anyhow::Result<()> {
-pub async fn initialize(_pool: &PgPool) -> anyhow::Result<()> {
-    //assert!(SQLX_DB.ne("No Database Feature set in your Cargo.toml, should be sqlite or postgres"));
+pub async fn initialize() -> anyhow::Result<()> {
     println!("Initializing axum-tenancy for DB: {:?}", ACTIVE_DB);
+    dotenv().expect(".env file not found");
+    let database_url: String = env::var("DATABASE_URL").expect("env missing DATABASE_URL");
+    install_default_drivers();
+        
+    let _pool: AnyPool = PoolOptions::new()
+        .max_connections(5)
+        .connect(&database_url)
+        .await
+        .expect("Could not create db pool");
+    Ok(())
+    //:#![warn()]::migrate!().run(&pool).await.expect("Migration fail");
+
+}
+
+
+
+    
+//pub async fn initialize(_pool: &PgPool) -> anyhow::Result<()> {
+    //assert!(SQLX_DB.ne("No Database Feature set in your Cargo.toml, should be sqlite or postgres"));
+//    println!("Initializing axum-tenancy for DB: {:?}", ACTIVE_DB);
     //admin_postgres::user_postgres::insert();
 /*    
     //cfg_if::cfg_if! {
@@ -75,8 +99,8 @@ pub async fn initialize(_pool: &PgPool) -> anyhow::Result<()> {
     println!("u.user_name: {}", u.user_name);
     eprintln!("sort:{}",UserSort::UserName.as_str());
     */
-    Ok(())
-}
+//    Ok(())
+//}
 
 
 
