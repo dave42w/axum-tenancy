@@ -55,7 +55,7 @@ askama = { version = "0.12.1", features = ["with-axum"] }
 axum-tenancy-core = { path = "../axum-tenancy-core" }
 axum-tenancy-postgres = { path = "../axum-tenancy-postgres" }
 #axum-tenancy-postgres = { path = "../axum-tenancy-postgres", optional = true }
-tokio = { version = "1.35.1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread"] }
 
 [features]
 #default = ["postgres"]
