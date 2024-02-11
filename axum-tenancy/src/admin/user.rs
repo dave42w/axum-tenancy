@@ -76,7 +76,7 @@ pub async fn update(
         ActiveDb::Postgres => {
             let r = user_postgres::update_postgres(tx, &u).await;
             match r {
-                Ok(qr) => return Ok(qr.rows_affected()),
+                Ok(qr) => Ok(qr.rows_affected()),
                 Err(e) => Err(e.into()),
             }
         }
@@ -123,19 +123,16 @@ mod tests_postgres {
         )
         .await;
         assert_eq!(&user_result.is_ok(), &true);
-        assert_eq!(
-            insert(
-                &mut tx,
-                "Dave",
-                "not Dave Warnock",
-                true,
-                "dwarnock@test.com",
-                "01234567891"
-            )
-            .await
-            .is_err(),
-            true
-        );
+        assert!(insert(
+            &mut tx,
+            "Dave",
+            "not Dave Warnock",
+            true,
+            "dwarnock@test.com",
+            "01234567891"
+        )
+        .await
+        .is_err());
 
         Ok(())
     }
@@ -153,19 +150,16 @@ mod tests_postgres {
         )
         .await;
         assert_eq!(&user_result.is_ok(), &true);
-        assert_eq!(
-            insert(
-                &mut tx,
-                "NotDave",
-                "Dave Warnock",
-                true,
-                "dwarnock@test.com",
-                "01234567891"
-            )
-            .await
-            .is_err(),
-            true
-        );
+        assert!(insert(
+            &mut tx,
+            "NotDave",
+            "Dave Warnock",
+            true,
+            "dwarnock@test.com",
+            "01234567891"
+        )
+        .await
+        .is_err());
 
         Ok(())
     }

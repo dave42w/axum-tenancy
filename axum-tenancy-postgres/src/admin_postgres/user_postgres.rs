@@ -24,7 +24,6 @@
 
 use anyhow::{anyhow, Error, Result};
 use axum_tenancy_core::admin_core::user_core::{SortDirection, User, UserSort};
-use sqlx::any::AnyQueryResult;
 use uuid::Uuid;
 
 pub async fn insert_postgres(
@@ -58,12 +57,12 @@ pub async fn insert_postgres(
     match r {
         Ok(qr) => {
             if qr.rows_affected() == 1 {
-                return Ok(user_id);
+                Ok(user_id)
             } else {
-                return Err(anyhow!(
+                Err(anyhow!(
                     "Insert did not return 1 row affected:{}",
                     qr.rows_affected()
-                ));
+                ))
             }
         }
         Err(e) => Err(e.into()),

@@ -28,7 +28,7 @@ use std::env;
 
 use axum_tenancy_core::ActiveDb;
 use sqlx::any::install_default_drivers;
-use sqlx::pool::{Pool, PoolOptions};
+use sqlx::pool::PoolOptions;
 use sqlx::AnyPool;
 
 pub mod admin;
