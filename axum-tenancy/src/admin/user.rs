@@ -1,18 +1,18 @@
 /*
 # MIT License
-# 
+#
 # Copyright (c) 2024 Dave Warnock
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,11 +22,11 @@
 # SOFTWARE.
 */
 
-use axum_tenancy_core::ActiveDb;
 use crate::ACTIVE_DB;
-use anyhow::{Result, Error};
+use anyhow::{Error, Result};
+use axum_tenancy_core::admin_core::user_core::{SortDirection, User, UserSort};
+use axum_tenancy_core::ActiveDb;
 use uuid::Uuid;
-use axum_tenancy_core::admin_core::user_core::{User, UserSort, SortDirection};
 
 use axum_tenancy_postgres::admin_postgres::user_postgres;
 
@@ -43,15 +43,15 @@ pub async fn insert(
 
 pub async fn load_by_id(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    user_id: Uuid)
--> Result<User, sqlx::Error> {
+    user_id: Uuid,
+) -> Result<User, sqlx::Error> {
     user_postgres::load_by_id_postgres(tx, user_id).await
 }
 pub async fn load_all_sorted(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     sort: UserSort,
-    direction: SortDirection)
--> Result<Vec<User>, sqlx::Error> {
+    direction: SortDirection,
+) -> Result<Vec<User>, sqlx::Error> {
     user_postgres::load_all_sorted_postgres(tx, sort, direction).await
 }
 
@@ -81,10 +81,9 @@ pub async fn update(
             }
         }
         ActiveDb::Sqlite => Err(Error::msg("No sqlite db code")),
-        ActiveDb::Undefined => Err(Error::msg("Undefined db not supported")),    
+        ActiveDb::Undefined => Err(Error::msg("Undefined db not supported")),
     }
 }
-
 
 #[cfg(test)]
 mod tests_tokio {
@@ -99,7 +98,7 @@ mod tests_tokio {
             pub const ACTIVE_DB: ActiveDb = ActiveDb::Undefined;
         }
     }
-        
+
     #[tokio::test(flavor = "multi_thread")]
     async fn tokio_test() {
         assert_eq!(ACTIVE_DB, ActiveDb::Postgres);
@@ -108,15 +107,35 @@ mod tests_tokio {
 
 #[cfg(test)]
 mod tests_postgres {
-    use sqlx::PgPool;
     use super::*;
+    use sqlx::PgPool;
 
     #[sqlx::test(migrations = "../axum-tenancy-postgres/migrations")]
     async fn insert_user_no_dup_user_name(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
         let mut tx = pool.begin().await?;
-        let user_result = insert(&mut tx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await;
+        let user_result = insert(
+            &mut tx,
+            "Dave",
+            "Dave Warnock",
+            true,
+            "dwarnock@test.com",
+            "01234567891",
+        )
+        .await;
         assert_eq!(&user_result.is_ok(), &true);
-        assert_eq!(insert(&mut tx, "Dave", "not Dave Warnock", true, "dwarnock@test.com", "01234567891").await.is_err(), true);
+        assert_eq!(
+            insert(
+                &mut tx,
+                "Dave",
+                "not Dave Warnock",
+                true,
+                "dwarnock@test.com",
+                "01234567891"
+            )
+            .await
+            .is_err(),
+            true
+        );
 
         Ok(())
     }
@@ -124,9 +143,29 @@ mod tests_postgres {
     #[sqlx::test(migrations = "../axum-tenancy-postgres/migrations")]
     async fn insert_user_no_dup_display_name(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
         let mut tx = pool.begin().await?;
-        let user_result = insert(&mut tx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await;
+        let user_result = insert(
+            &mut tx,
+            "Dave",
+            "Dave Warnock",
+            true,
+            "dwarnock@test.com",
+            "01234567891",
+        )
+        .await;
         assert_eq!(&user_result.is_ok(), &true);
-        assert_eq!(insert(&mut tx, "NotDave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await.is_err(), true);
+        assert_eq!(
+            insert(
+                &mut tx,
+                "NotDave",
+                "Dave Warnock",
+                true,
+                "dwarnock@test.com",
+                "01234567891"
+            )
+            .await
+            .is_err(),
+            true
+        );
 
         Ok(())
     }
@@ -134,15 +173,23 @@ mod tests_postgres {
     #[sqlx::test(migrations = "../axum-tenancy-postgres/migrations")]
     async fn insert_then_check_load_user(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
         let mut tx = pool.begin().await?;
-        let user_result = insert(&mut tx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await;
+        let user_result = insert(
+            &mut tx,
+            "Dave",
+            "Dave Warnock",
+            true,
+            "dwarnock@test.com",
+            "01234567891",
+        )
+        .await;
         assert_eq!(&user_result.is_ok(), &true);
 
         let inserted_uuid = user_result.unwrap_or_default();
         assert_ne!(&inserted_uuid.to_string(), ""); // uuid must not be empty
 
         let load_result = load_by_id(&mut tx, inserted_uuid).await;
-        assert_eq!(&load_result.is_ok(), &true);  // load_by_id reult is ok
-        
+        assert_eq!(&load_result.is_ok(), &true); // load_by_id reult is ok
+
         let loaded_user = load_result.unwrap_or_default();
         assert_eq!(&loaded_user.user_id, &inserted_uuid);
         assert_eq!(&loaded_user.user_name.to_string(), &"Dave");
@@ -157,20 +204,37 @@ mod tests_postgres {
     #[sqlx::test(migrations = "../axum-tenancy-postgres/migrations")]
     async fn insert_update_then_check(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
         let mut tx = pool.begin().await?;
-        let insert_result = insert(&mut tx, "Dave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await;
+        let insert_result = insert(
+            &mut tx,
+            "Dave",
+            "Dave Warnock",
+            true,
+            "dwarnock@test.com",
+            "01234567891",
+        )
+        .await;
         assert_eq!(&insert_result.is_ok(), &true);
 
         let inserted_uuid = insert_result.unwrap_or_default();
         assert_ne!(&inserted_uuid.to_string(), ""); // uuid must not be empty
 
-        let update_result = update(&mut tx, &inserted_uuid, "not Dave", "not Dave Warnock", false, "not dwarnock@test.com", "6601234567891").await;
+        let update_result = update(
+            &mut tx,
+            &inserted_uuid,
+            "not Dave",
+            "not Dave Warnock",
+            false,
+            "not dwarnock@test.com",
+            "6601234567891",
+        )
+        .await;
         assert_eq!(&update_result.is_ok(), &true);
         let rows_affected = update_result.unwrap();
         assert_eq!(rows_affected, 1);
 
         let load_result = load_by_id(&mut tx, inserted_uuid).await;
-        assert_eq!(&load_result.is_ok(), &true);  // load_by_id reult is ok
-        
+        assert_eq!(&load_result.is_ok(), &true); // load_by_id reult is ok
+
         let loaded_user = load_result.unwrap_or_default();
         assert_eq!(&loaded_user.user_id, &inserted_uuid);
         assert_eq!(&loaded_user.user_name.to_string(), &"not Dave");
@@ -185,23 +249,39 @@ mod tests_postgres {
     #[sqlx::test(migrations = "../axum-tenancy-postgres/migrations")]
     async fn insert_two_check_load_all(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
         let mut tx = pool.begin().await?;
-        let user_result1 = insert(&mut tx, "zDave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await;
+        let user_result1 = insert(
+            &mut tx,
+            "zDave",
+            "Dave Warnock",
+            true,
+            "dwarnock@test.com",
+            "01234567891",
+        )
+        .await;
         assert_eq!(&user_result1.is_ok(), &true);
 
         let inserted_uuid1 = user_result1.unwrap_or_default();
         assert_ne!(&inserted_uuid1.to_string(), ""); // uuid must not be empty
 
-        let user_result2 = insert(&mut tx, "Dave2", "Dave Warnock2", false, "dwarnock@test.com2", "012345678912").await;
+        let user_result2 = insert(
+            &mut tx,
+            "Dave2",
+            "Dave Warnock2",
+            false,
+            "dwarnock@test.com2",
+            "012345678912",
+        )
+        .await;
         assert_eq!(&user_result2.is_ok(), &true);
 
         let inserted_uuid2 = user_result2.unwrap_or_default();
         assert_ne!(&inserted_uuid2.to_string(), ""); // uuid must not be empty
 
         let load_result = load_all_sorted(&mut tx, UserSort::UserName, SortDirection::Asc).await;
-        assert_eq!(&load_result.is_ok(), &true);  // load_by_id reult is ok
+        assert_eq!(&load_result.is_ok(), &true); // load_by_id reult is ok
         let vec_users = &load_result.unwrap();
-        assert_eq!(&vec_users.len(), &2usize);  // load_by_id reult is ok
-        
+        assert_eq!(&vec_users.len(), &2usize); // load_by_id reult is ok
+
         let loaded_user2 = &vec_users[0];
         assert_eq!(&loaded_user2.user_id, &inserted_uuid2);
         assert_eq!(&loaded_user2.user_name.to_string(), &"Dave2");
@@ -224,23 +304,40 @@ mod tests_postgres {
     #[sqlx::test(migrations = "../axum-tenancy-postgres/migrations")]
     async fn insert_two_check_sort_desc(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
         let mut tx = pool.begin().await?;
-        let user_result1 = insert(&mut tx, "zDave", "Dave Warnock", true, "dwarnock@test.com", "01234567891").await;
+        let user_result1 = insert(
+            &mut tx,
+            "zDave",
+            "Dave Warnock",
+            true,
+            "dwarnock@test.com",
+            "01234567891",
+        )
+        .await;
         assert_eq!(&user_result1.is_ok(), &true);
 
         let inserted_uuid1 = user_result1.unwrap_or_default();
         assert_ne!(&inserted_uuid1.to_string(), ""); // uuid must not be empty
 
-        let user_result2 = insert(&mut tx, "Dave2", "Dave Warnock2", false, "dwarnock@test.com2", "012345678912").await;
+        let user_result2 = insert(
+            &mut tx,
+            "Dave2",
+            "Dave Warnock2",
+            false,
+            "dwarnock@test.com2",
+            "012345678912",
+        )
+        .await;
         assert_eq!(&user_result2.is_ok(), &true);
 
         let inserted_uuid2 = user_result2.unwrap_or_default();
         assert_ne!(&inserted_uuid2.to_string(), ""); // uuid must not be empty
 
-        let load_result = load_all_sorted(&mut tx, UserSort::DisplayName, SortDirection::Desc).await;
-        assert_eq!(&load_result.is_ok(), &true);  // load_by_id reult is ok
+        let load_result =
+            load_all_sorted(&mut tx, UserSort::DisplayName, SortDirection::Desc).await;
+        assert_eq!(&load_result.is_ok(), &true); // load_by_id reult is ok
         let vec_users = &load_result.unwrap();
-        assert_eq!(&vec_users.len(), &2usize);  // load_by_id reult is ok
-        
+        assert_eq!(&vec_users.len(), &2usize); // load_by_id reult is ok
+
         let loaded_user2 = &vec_users[0];
         assert_eq!(&loaded_user2.user_id, &inserted_uuid2);
         assert_eq!(&loaded_user2.user_name.to_string(), &"Dave2");

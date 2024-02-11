@@ -1,18 +1,18 @@
 /*
 # MIT License
-# 
+#
 # Copyright (c) 2024 Dave Warnock
-# 
+#
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
 # in the Software without restriction, including without limitation the rights
 # to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 # copies of the Software, and to permit persons to whom the Software is
 # furnished to do so, subject to the following conditions:
-# 
+#
 # The above copyright notice and this permission notice shall be included in all
 # copies or substantial portions of the Software.
-# 
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 # FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,10 +22,10 @@
 # SOFTWARE.
 */
 
-use anyhow::{anyhow, Result, Error};
+use anyhow::{anyhow, Error, Result};
+use axum_tenancy_core::admin_core::user_core::{SortDirection, User, UserSort};
 use sqlx::any::AnyQueryResult;
 use uuid::Uuid;
-use axum_tenancy_core::admin_core::user_core::{User, UserSort, SortDirection};
 
 pub async fn insert_postgres(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
@@ -60,7 +60,10 @@ pub async fn insert_postgres(
             if qr.rows_affected() == 1 {
                 return Ok(user_id);
             } else {
-                return Err(anyhow!("Insert did not return 1 row affected:{}",qr.rows_affected()));
+                return Err(anyhow!(
+                    "Insert did not return 1 row affected:{}",
+                    qr.rows_affected()
+                ));
             }
         }
         Err(e) => Err(e.into()),
@@ -69,8 +72,8 @@ pub async fn insert_postgres(
 
 pub async fn load_by_id_postgres(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    user_id: Uuid)
--> Result<User, sqlx::Error> {
+    user_id: Uuid,
+) -> Result<User, sqlx::Error> {
     sqlx::query_as!(
         User,
         r#"SELECT user_id, user_name, display_name, is_admin, email, mobile_phone from "user" where user_id = $1"#,
@@ -83,8 +86,8 @@ pub async fn load_by_id_postgres(
 pub async fn load_all_sorted_postgres(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     sort: UserSort,
-    direction: SortDirection)
--> Result<Vec<User>, sqlx::Error> {
+    direction: SortDirection,
+) -> Result<Vec<User>, sqlx::Error> {
     match direction {
         SortDirection::Asc => {
             sqlx::query_as!(
@@ -121,7 +124,6 @@ pub async fn update_postgres(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     u: &User,
 ) -> Result<sqlx::postgres::PgQueryResult, sqlx::Error> {
-
     sqlx::query!(
         r#"
         UPDATE "user" 
@@ -143,5 +145,3 @@ pub async fn update_postgres(
     .execute(&mut **tx)
     .await
 }
-
-
