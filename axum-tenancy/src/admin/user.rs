@@ -32,6 +32,7 @@ use uuid::Uuid;
 
 use crate::ACTIVE_DB;
 
+
 pub async fn insert(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     user_name: &str,
@@ -89,7 +90,10 @@ pub async fn update(
 
 #[cfg(test)]
 mod tests_tokio {
+
     use axum_tenancy_core::ActiveDb;
+    use async_trait;
+    use test_context::{test_context, AsyncTestContext};
 
     cfg_if::cfg_if! {
         if #[cfg(feature = "sqlite")] {
@@ -99,6 +103,28 @@ mod tests_tokio {
         } else {
             pub const ACTIVE_DB: ActiveDb = ActiveDb::Undefined;
         }
+    }
+
+
+    struct TenancyTestContext {
+        value: String
+    }
+
+    #[async_trait::async_trait]
+    impl AsyncTestContext for TenancyTestContext {
+        async fn setup() -> TenancyTestContext {
+            TenancyTestContext { value: "Hello, World!".to_string() }
+        }
+
+        async fn teardown(self) {
+            // Perform any teardown you wish.
+        }
+    }
+
+    #[test_context(TenancyTestContext)]
+    #[tokio::test]
+    async fn test_context(tenancy_context: &mut TenancyTestContext) {
+        assert_eq!(tenancy_context.value, "Hello, World!");
     }
 
     #[tokio::test(flavor = "multi_thread")]

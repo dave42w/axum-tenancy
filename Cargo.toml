@@ -26,6 +26,3 @@ resolver = "2"
 members = ["axum-tenancy", "axum-tenancy-postgres", "axum-tenancy-core", "examples/*"]
 default-members = ["axum-tenancy"]
 
-[profile.dev.package.sqlx-macros]
-opt-level = 3
-
