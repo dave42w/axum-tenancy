@@ -22,11 +22,14 @@
 # SOFTWARE.
 */
 
+use std::env;
+
 use axum_tenancy;
 use dotenvy::dotenv;
-use sqlx::any::{install_default_drivers, AnyPoolOptions};
-use sqlx::Pool;
-use std::env;
+use sqlx::{
+    any::{install_default_drivers, AnyPoolOptions},
+    Pool,
+};
 
 #[tokio::main]
 async fn main() {

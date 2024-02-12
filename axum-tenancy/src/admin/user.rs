@@ -22,13 +22,15 @@
 # SOFTWARE.
 */
 
-use crate::ACTIVE_DB;
 use anyhow::{Error, Result};
-use axum_tenancy_core::admin_core::user_core::{SortDirection, User, UserSort};
-use axum_tenancy_core::ActiveDb;
+use axum_tenancy_core::{
+    admin_core::user_core::{SortDirection, User, UserSort},
+    ActiveDb,
+};
+use axum_tenancy_postgres::admin_postgres::user_postgres;
 use uuid::Uuid;
 
-use axum_tenancy_postgres::admin_postgres::user_postgres;
+use crate::ACTIVE_DB;
 
 pub async fn insert(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
@@ -107,8 +109,9 @@ mod tests_tokio {
 
 #[cfg(test)]
 mod tests_postgres {
-    use super::*;
     use sqlx::PgPool;
+
+    use super::*;
 
     #[sqlx::test(migrations = "../axum-tenancy-postgres/migrations")]
     async fn insert_user_no_dup_user_name(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {

@@ -22,14 +22,12 @@
 # SOFTWARE.
 */
 
-use anyhow::Ok;
-use dotenvy::dotenv;
 use std::env;
 
+use anyhow::Ok;
 use axum_tenancy_core::ActiveDb;
-use sqlx::any::install_default_drivers;
-use sqlx::pool::PoolOptions;
-use sqlx::AnyPool;
+use dotenvy::dotenv;
+use sqlx::{any::install_default_drivers, pool::PoolOptions, AnyPool};
 
 pub mod admin;
 
@@ -59,22 +57,22 @@ pub async fn initialize() -> anyhow::Result<()> {
 }
 
 //pub async fn initialize(_pool: &PgPool) -> anyhow::Result<()> {
-//assert!(SQLX_DB.ne("No Database Feature set in your Cargo.toml, should be sqlite or postgres"));
-//    println!("Initializing axum-tenancy for DB: {:?}", ACTIVE_DB);
-//admin_postgres::user_postgres::insert();
+//assert!(SQLX_DB.ne("No Database Feature set in your Cargo.toml, should be
+// sqlite or postgres"));    println!("Initializing axum-tenancy for DB: {:?}",
+// ACTIVE_DB); admin_postgres::user_postgres::insert();
 /*
-//cfg_if::cfg_if! {
-//    if #[cfg(feature = "sqlite")] {
-//        sqlx::migrate!("migrations/sqlite").run(pool).await?;
-//    } else if #[cfg(feature = "postgres")] {
-//        sqlx::migrate!("migrations/postgres").run(pool).await?;
-//    } else {
-//        assert_eq!("No Db feature", "In Cargo.toml for axum-tenancy");
-//        // never yet here but ensure that pool is used
-//        sqlx::migrate!("migrations/sqlite").run(pool).await?;
-//    }
-//}
-*/
+ *cfg_if::cfg_if! {
+ *    if #[cfg(feature = "sqlite")] {
+ *        sqlx::migrate!("migrations/sqlite").run(pool).await?;
+ *    } else if #[cfg(feature = "postgres")] {
+ *        sqlx::migrate!("migrations/postgres").run(pool).await?;
+ *    } else {
+ *        assert_eq!("No Db feature", "In Cargo.toml for axum-tenancy");
+ *        // never yet here but ensure that pool is used
+ *        sqlx::migrate!("migrations/sqlite").run(pool).await?;
+ *    }
+ *}
+ */
 
 /*
 * println!("pre migrate");
