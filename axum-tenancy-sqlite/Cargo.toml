@@ -20,9 +20,18 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+[package]
+name = "axum-tenancy-sqlite"
+version = "0.1.0"
+edition = "2021"
+description = "Multi tenant support for Axum web app."
 
-[workspace]
-resolver = "2"
-members = ["axum-tenancy", "axum-tenancy-postgres", "axum-tenancy-sqlite", "axum-tenancy-core", "examples/*"]
-default-members = ["axum-tenancy"]
+[dependencies]
+libsqlite3-sys = "0.27.0"
+sqlx = { version = "0.7.3", features = ["sqlite", "runtime-tokio", "chrono", "uuid", "macros"] }
+uuid = { version = "1.7.0", features = ["v4", "serde"] }
+cfg-if = "1.0.0"
+anyhow = "1.0.79"
+axum-tenancy-core = { path = "../axum-tenancy-core" }
+
 
