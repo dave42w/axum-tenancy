@@ -23,43 +23,53 @@
 */
 
 use anyhow::{Error, Result};
-use axum_tenancy_core::{
-    admin_core::user_core::{SortDirection, User, UserSort},
-    ActiveDb,
-};
-use axum_tenancy_postgres::admin_postgres::user_postgres;
+use axum_tenancy_core::
+    admin_core::user_core::{SortDirection, User, UserSort};
 use uuid::Uuid;
 
-use crate::ACTIVE_DB;
+#[cfg(not(any(feature = "sqlite", feature = "postgres")))]
+compile_error!("Either feature \"sqlite\" or \"postgres\" must be enabled for this crate.");
 
+#[cfg(feature = "sqlite")]
+use axum_tenancy_sqlite::admin_sqlite::user_sqlite as user_db;
+
+#[cfg(feature = "postgres")]
+use axum_tenancy_postgres::admin_postgres::user_postgres as user_db;
+
+#[cfg(feature = "sqlite")]
+type DbTransaction<'c> = sqlx::Transaction<'c, sqlx::Sqlite>;
+
+#[cfg(feature = "postgres")]
+type DbTransaction<'c> = sqlx::Transaction<'c, sqlx::Postgres>;
 
 pub async fn insert(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    tx: &mut DbTransaction<'_>,
     user_name: &str,
     display_name: &str,
     is_admin: bool,
     email: &str,
     mobile_phone: &str,
 ) -> Result<uuid::Uuid, Error> {
-    user_postgres::insert_postgres(tx, user_name, display_name, is_admin, email, mobile_phone).await
+    user_db::insert(tx, user_name, display_name, is_admin, email, mobile_phone).await
 }
 
+
 pub async fn load_by_id(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    tx: &mut DbTransaction<'_>,
     user_id: Uuid,
 ) -> Result<User, sqlx::Error> {
-    user_postgres::load_by_id_postgres(tx, user_id).await
+    user_db::load_by_id(tx, user_id).await
 }
 pub async fn load_all_sorted(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    tx: &mut DbTransaction<'_>,
     sort: UserSort,
     direction: SortDirection,
 ) -> Result<Vec<User>, sqlx::Error> {
-    user_postgres::load_all_sorted_postgres(tx, sort, direction).await
+    user_db::load_all_sorted(tx, sort, direction).await
 }
 
 pub async fn update(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    tx: &mut DbTransaction<'_>,
     user_id: &Uuid,
     user_name: &str,
     display_name: &str,
@@ -75,45 +85,57 @@ pub async fn update(
         email: email.to_string(),
         mobile_phone: mobile_phone.to_string(),
     };
-    match ACTIVE_DB {
-        ActiveDb::Postgres => {
-            let r = user_postgres::update_postgres(tx, &u).await;
-            match r {
-                Ok(qr) => Ok(qr.rows_affected()),
-                Err(e) => Err(e.into()),
-            }
-        }
-        ActiveDb::Sqlite => Err(Error::msg("No sqlite db code")),
-        ActiveDb::Undefined => Err(Error::msg("Undefined db not supported")),
+    let r = user_db::update(tx, &u).await;
+    match r {
+        Ok(qr) => Ok(qr.rows_affected()),
+        Err(e) => Err(e.into()),
     }
 }
 
+#[cfg(feature = "postgres")]
 #[cfg(test)]
 mod tests_tokio {
 
-    use axum_tenancy_core::ActiveDb;
+    use tokio::sync::OnceCell;
     use async_trait;
     use test_context::{test_context, AsyncTestContext};
+    use sqlx::PgPool;
+    use sqlx::postgres::PgPoolOptions;
+    use std::env;
+    use dotenvy::dotenv;
+    use super::*;
 
-    cfg_if::cfg_if! {
-        if #[cfg(feature = "sqlite")] {
-            pub const ACTIVE_DB: ActiveDb = ActiveDb::Sqlite;
-        } else if #[cfg(feature = "postgres")] {
-            pub const ACTIVE_DB: ActiveDb = ActiveDb::Postgres;
-        } else {
-            pub const ACTIVE_DB: ActiveDb = ActiveDb::Undefined;
-        }
-    }
-
+    static TEST_POOL_POSTGRES: OnceCell<PgPool> = OnceCell::const_new();
+    //static TEST_POOL_SQLITE: OnceCell<AnyPool> = OnceCell::const_new();
 
     struct TenancyTestContext {
-        value: String
+        value: String,
+    }
+
+    async fn get_test_pool_postgres() -> &'static PgPool {
+        TEST_POOL_POSTGRES.get_or_init(|| async {
+            dotenv().expect(".env file not found");
+            let database_url: String = env::var("POSTGRES_TEST_DATABASE_URL").expect("env missing DATABASE_URL");
+            //install_default_drivers();
+            let pool: PgPool = PgPoolOptions::new()
+                .max_connections(5)
+                .connect(&database_url)
+                .await
+                .expect("Could not create db pool");
+            // do seed
+            let _m = sqlx::migrate!("../axum-tenancy-postgres/migrations").run(&pool).await.expect("Postgres Migration failed");
+            return pool;
+        }).await
     }
 
     #[async_trait::async_trait]
     impl AsyncTestContext for TenancyTestContext {
         async fn setup() -> TenancyTestContext {
-            TenancyTestContext { value: "Hello, World!".to_string() }
+            println!("Test context");
+            let _pool = get_test_pool_postgres();
+            println!("got postgres test pool");
+
+            TenancyTestContext { value: "Hello, world".to_string() }
         }
 
         async fn teardown(self) {
@@ -122,14 +144,38 @@ mod tests_tokio {
     }
 
     #[test_context(TenancyTestContext)]
-    #[tokio::test]
-    async fn test_context(tenancy_context: &mut TenancyTestContext) {
-        assert_eq!(tenancy_context.value, "Hello, World!");
-    }
-
     #[tokio::test(flavor = "multi_thread")]
-    async fn tokio_test() {
-        assert_eq!(ACTIVE_DB, ActiveDb::Postgres);
+    async fn test_context(_tenancy_context: &mut TenancyTestContext) -> sqlx::Result<(), sqlx::Error> {
+        let pool = get_test_pool_postgres();
+        let mut tx: DbTransaction = pool.await.begin().await?;
+        let user_result = insert(
+            &mut tx,
+            "Dave",
+            "Dave Warnock",
+            true,
+            "dwarnock@test.com",
+            "01234567891",
+        )
+        .await;
+        assert_eq!(&user_result.is_ok(), &true);
+        assert!(insert(
+            &mut tx,
+            "Dave",
+            "not Dave Warnock",
+            true,
+            "dwarnock@test.com",
+            "01234567891"
+        )
+        .await
+        .is_err());
+
+        Ok(())
+    }
+    
+    #[test_context(TenancyTestContext)]
+    #[tokio::test(flavor = "multi_thread")]
+    async fn tokio_test(_tenancy_context: &mut TenancyTestContext) {
+        assert_eq!("test", "test");
     }
 }
 
@@ -141,7 +187,7 @@ mod tests_postgres {
 
     #[sqlx::test(migrations = "../axum-tenancy-postgres/migrations")]
     async fn insert_user_no_dup_user_name(pool: PgPool) -> sqlx::Result<(), sqlx::Error> {
-        let mut tx = pool.begin().await?;
+        let mut tx: DbTransaction = pool.begin().await?;
         let user_result = insert(
             &mut tx,
             "Dave",

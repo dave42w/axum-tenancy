@@ -22,12 +22,17 @@
 # SOFTWARE.
 */
 
+
 use anyhow::{anyhow, Error, Result};
 use axum_tenancy_core::admin_core::user_core::{SortDirection, User, UserSort};
+use sqlx::Postgres;
 use uuid::Uuid;
 
-pub async fn insert_postgres(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+type DbTransaction<'c> = sqlx::Transaction<'c, sqlx::Postgres>;
+
+pub async fn insert(
+    tx: &mut DbTransaction<'_>,
+    //tx: &mut sqlx::Transaction<'_, Postgres>,
     user_name: &str,
     display_name: &str,
     is_admin: bool,
@@ -69,7 +74,7 @@ pub async fn insert_postgres(
     }
 }
 
-pub async fn load_by_id_postgres(
+pub async fn load_by_id(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     user_id: Uuid,
 ) -> Result<User, sqlx::Error> {
@@ -82,7 +87,7 @@ pub async fn load_by_id_postgres(
     .await
 }
 
-pub async fn load_all_sorted_postgres(
+pub async fn load_all_sorted(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     sort: UserSort,
     direction: SortDirection,
@@ -119,7 +124,7 @@ pub async fn load_all_sorted_postgres(
     }
 }
 
-pub async fn update_postgres(
+pub async fn update(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     u: &User,
 ) -> Result<sqlx::postgres::PgQueryResult, sqlx::Error> {
