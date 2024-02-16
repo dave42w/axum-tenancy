@@ -25,10 +25,10 @@ CREATE TABLE IF NOT EXISTS "user" (
     user_name TEXT NOT NULL,
     hash_password TEXT NOT NULL,
     display_name TEXT NOT NULL,
-    is_admin BOOLEAN NOT NULL,
+    is_admin INTEGER NOT NULL,
     email TEXT NOT NULL,
     mobile_phone TEXT NOT NULL,
     UNIQUE (user_name),
     UNIQUE (display_name)
-);
+) WITHOUT ROWID;
 
