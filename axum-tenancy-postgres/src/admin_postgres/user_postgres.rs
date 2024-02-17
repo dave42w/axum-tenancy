@@ -25,7 +25,7 @@
 
 use anyhow::{anyhow, Error, Result};
 use axum_tenancy_core::admin_core::user_core::{SortDirection, User, UserSort};
-use sqlx::Postgres;
+
 use uuid::Uuid;
 
 type DbTransaction<'c> = sqlx::Transaction<'c, sqlx::Postgres>;
