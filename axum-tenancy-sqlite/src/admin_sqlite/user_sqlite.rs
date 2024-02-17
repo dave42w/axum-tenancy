@@ -22,7 +22,6 @@
 # SOFTWARE.
 */
 
-
 use anyhow::{anyhow, Error, Result};
 use axum_tenancy_core::admin_core::user_core::{SortDirection, User, UserSort};
 use sqlx::sqlite;

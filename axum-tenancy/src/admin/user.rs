@@ -23,18 +23,16 @@
 */
 
 use anyhow::{Error, Result};
-use axum_tenancy_core::
-    admin_core::user_core::{SortDirection, User, UserSort};
+use axum_tenancy_core::admin_core::user_core::{SortDirection, User, UserSort};
 use uuid::Uuid;
 
 #[cfg(not(any(feature = "sqlite", feature = "postgres")))]
 compile_error!("Either feature \"sqlite\" or \"postgres\" must be enabled for this crate.");
 
-#[cfg(feature = "sqlite")]
-use axum_tenancy_sqlite::admin_sqlite::user_sqlite as user_db;
-
 #[cfg(feature = "postgres")]
 use axum_tenancy_postgres::admin_postgres::user_postgres as user_db;
+#[cfg(feature = "sqlite")]
+use axum_tenancy_sqlite::admin_sqlite::user_sqlite as user_db;
 
 #[cfg(feature = "sqlite")]
 type DbTransaction<'c> = sqlx::Transaction<'c, sqlx::Sqlite>;
@@ -53,11 +51,7 @@ pub async fn insert(
     user_db::insert(tx, user_name, display_name, is_admin, email, mobile_phone).await
 }
 
-
-pub async fn load_by_id(
-    tx: &mut DbTransaction<'_>,
-    user_id: Uuid,
-) -> Result<User, sqlx::Error> {
+pub async fn load_by_id(tx: &mut DbTransaction<'_>, user_id: Uuid) -> Result<User, sqlx::Error> {
     user_db::load_by_id(tx, user_id).await
 }
 pub async fn load_all_sorted(
@@ -96,13 +90,14 @@ pub async fn update(
 #[cfg(test)]
 mod tests_tokio {
 
-    use tokio::sync::OnceCell;
-    use async_trait;
-    use test_context::{test_context, AsyncTestContext};
-    use sqlx::PgPool;
-    use sqlx::postgres::PgPoolOptions;
     use std::env;
+
+    use async_trait;
     use dotenvy::dotenv;
+    use sqlx::{postgres::PgPoolOptions, PgPool};
+    use test_context::{test_context, AsyncTestContext};
+    use tokio::sync::OnceCell;
+
     use super::*;
 
     static TEST_POOL_POSTGRES: OnceCell<PgPool> = OnceCell::const_new();
@@ -113,19 +108,25 @@ mod tests_tokio {
     }
 
     async fn get_test_pool_postgres() -> &'static PgPool {
-        TEST_POOL_POSTGRES.get_or_init(|| async {
-            dotenv().expect(".env file not found");
-            let database_url: String = env::var("POSTGRES_TEST_DATABASE_URL").expect("env missing DATABASE_URL");
-            //install_default_drivers();
-            let pool: PgPool = PgPoolOptions::new()
-                .max_connections(5)
-                .connect(&database_url)
-                .await
-                .expect("Could not create db pool");
-            // do seed
-            let _m = sqlx::migrate!("../axum-tenancy-postgres/migrations").run(&pool).await.expect("Postgres Migration failed");
-            return pool;
-        }).await
+        TEST_POOL_POSTGRES
+            .get_or_init(|| async {
+                dotenv().expect(".env file not found");
+                let database_url: String =
+                    env::var("POSTGRES_TEST_DATABASE_URL").expect("env missing DATABASE_URL");
+                //install_default_drivers();
+                let pool: PgPool = PgPoolOptions::new()
+                    .max_connections(5)
+                    .connect(&database_url)
+                    .await
+                    .expect("Could not create db pool");
+                // do seed
+                let _m = sqlx::migrate!("../axum-tenancy-postgres/migrations")
+                    .run(&pool)
+                    .await
+                    .expect("Postgres Migration failed");
+                return pool;
+            })
+            .await
     }
 
     #[async_trait::async_trait]
@@ -135,7 +136,9 @@ mod tests_tokio {
             let _pool = get_test_pool_postgres();
             println!("got postgres test pool");
 
-            TenancyTestContext { value: "Hello, world".to_string() }
+            TenancyTestContext {
+                value: "Hello, world".to_string(),
+            }
         }
 
         async fn teardown(self) {
@@ -145,7 +148,9 @@ mod tests_tokio {
 
     #[test_context(TenancyTestContext)]
     #[tokio::test(flavor = "multi_thread")]
-    async fn test_context(_tenancy_context: &mut TenancyTestContext) -> sqlx::Result<(), sqlx::Error> {
+    async fn test_context(
+        _tenancy_context: &mut TenancyTestContext,
+    ) -> sqlx::Result<(), sqlx::Error> {
         let pool = get_test_pool_postgres();
         let mut tx: DbTransaction = pool.await.begin().await?;
         let user_result = insert(
@@ -171,7 +176,7 @@ mod tests_tokio {
 
         Ok(())
     }
-    
+
     #[test_context(TenancyTestContext)]
     #[tokio::test(flavor = "multi_thread")]
     async fn tokio_test(_tenancy_context: &mut TenancyTestContext) {
