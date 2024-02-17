@@ -31,7 +31,6 @@ type DbTransaction<'c> = sqlx::Transaction<'c, sqlx::Sqlite>;
 
 pub async fn insert(
     tx: &mut DbTransaction<'_>,
-    //tx: &mut sqlx::Transaction<'_, Postgres>,
     user_name: &str,
     display_name: &str,
     is_admin: bool,
@@ -42,7 +41,7 @@ pub async fn insert(
     let hash_password = "".to_string();
     let r = sqlx::query!(
         r#"
-        INSERT INTO "user" 
+        INSERT INTO user 
         (user_id, user_name, hash_password, display_name, is_admin, email, mobile_phone) 
         VALUES
         ($1, $2, $3, $4, $5, $6, $7)
