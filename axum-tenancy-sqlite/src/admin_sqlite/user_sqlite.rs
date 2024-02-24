@@ -24,8 +24,8 @@
 
 use anyhow::{anyhow, Error, Result};
 use axum_tenancy_core::admin_core::user_core::{SortDirection, User, UserSort};
-use sqlx::sqlite;
 use uuid::Uuid;
+use sqlx::FromRow;
 
 type DbTransaction<'c> = sqlx::Transaction<'c, sqlx::Sqlite>;
 
@@ -38,6 +38,7 @@ pub async fn insert(
     mobile_phone: &str,
 ) -> Result<uuid::Uuid, Error> {
     let user_id = Uuid::new_v4();
+    let str_user_id = user_id.to_string();
     let hash_password = "".to_string();
     let r = sqlx::query!(
         r#"
@@ -46,7 +47,7 @@ pub async fn insert(
         VALUES
         ($1, $2, $3, $4, $5, $6, $7)
         "#,
-        &user_id,
+        str_user_id,
         user_name,
         hash_password,
         display_name,
@@ -73,20 +74,20 @@ pub async fn insert(
 }
 
 pub async fn load_by_id(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    tx: &mut DbTransaction<'_>,
     user_id: Uuid,
 ) -> Result<User, sqlx::Error> {
     sqlx::query_as!(
         User,
-        r#"SELECT user_id, user_name, display_name, is_admin, email, mobile_phone from "user" where user_id = $1"#,
-        &user_id
+        r#"SELECT user_id, user_name, display_name, is_admin, email, mobile_phone from user where user_id = $1"#,
+        &user_id.to_string()
     )
     .fetch_one(&mut **tx)
     .await
 }
 
 pub async fn load_all_sorted(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    tx: &mut DbTransaction<'_>,
     sort: UserSort,
     direction: SortDirection,
 ) -> Result<Vec<User>, sqlx::Error> {
@@ -94,7 +95,7 @@ pub async fn load_all_sorted(
         SortDirection::Asc => {
             sqlx::query_as!(
                 User,
-                r#"SELECT user_id, user_name, display_name, is_admin, email, mobile_phone FROM "user" ORDER BY 
+                r#"SELECT user_id, user_name, display_name, is_admin, email, mobile_phone FROM user ORDER BY 
                     CASE 
                           WHEN $1 = 'user_name' THEN user_name
                           WHEN $1 = 'display_name' THEN display_name
@@ -108,7 +109,7 @@ pub async fn load_all_sorted(
         SortDirection::Desc => {
             sqlx::query_as!(
                 User,
-                r#"SELECT user_id, user_name, display_name, is_admin, email, mobile_phone FROM "user" ORDER BY 
+                r#"SELECT user_id, user_name, display_name, is_admin, email, mobile_phone FROM user ORDER BY 
                     CASE 
                           WHEN $1 = 'user_name' THEN user_name
                           WHEN $1 = 'display_name' THEN display_name
@@ -123,9 +124,10 @@ pub async fn load_all_sorted(
 }
 
 pub async fn update(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    tx: &mut DbTransaction<'_>,
     u: &User,
-) -> Result<sqlx::postgres::PgQueryResult, sqlx::Error> {
+) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error> {
+    let str_user_id = &u.user_id.to_string();
     sqlx::query!(
         r#"
         UPDATE "user" 
@@ -137,7 +139,7 @@ pub async fn update(
             WHERE
                 user_id = $1
         "#,
-        u.user_id,
+        str_user_id,
         u.user_name,
         u.display_name,
         u.is_admin,

@@ -24,8 +24,9 @@
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use sqlx::FromRow;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, FromRow)]
 pub struct User {
     pub user_id: Uuid,
     pub user_name: String,

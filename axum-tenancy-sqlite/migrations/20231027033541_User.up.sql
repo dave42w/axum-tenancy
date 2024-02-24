@@ -20,12 +20,12 @@
 -- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 -- SOFTWARE.
 
-CREATE TABLE IF NOT EXISTS "user" (
+CREATE TABLE IF NOT EXISTS user (
     user_id TEXT PRIMARY KEY,
     user_name TEXT NOT NULL,
     hash_password TEXT NOT NULL,
     display_name TEXT NOT NULL,
-    is_admin INTEGER NOT NULL,
+    is_admin BOOLEAN CHECK (is_admin IN (0, 1)),
     email TEXT NOT NULL,
     mobile_phone TEXT NOT NULL,
     UNIQUE (user_name),

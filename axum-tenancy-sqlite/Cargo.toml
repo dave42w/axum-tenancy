@@ -27,9 +27,21 @@ edition = "2021"
 description = "Multi tenant support for Axum web app."
 
 [dependencies]
+chrono = { version = "0.4.31", features = ["serde"] }
+color-eyre = "0.6.2"
+dotenvy = "0.15.7"
+serde = { version = "1.0.195", features = ["derive"] }
+serde_json = "1.0.111"
+
 libsqlite3-sys = "0.27.0"
 sqlx = { version = "0.7.3", features = ["sqlite", "runtime-tokio", "chrono", "uuid", "macros"] }
+tokio = { version = "1.35.1", features = ["macros", "rt-multi-thread"] }
 uuid = { version = "1.7.0", features = ["v4", "serde"] }
+
+#[dependencies]
+#libsqlite3-sys = "0.27.0"
+#sqlx = { version = "0.7.3", features = ["sqlite", "runtime-tokio", "chrono", "uuid", "macros"] }
+#uuid = { version = "1.7.0", features = ["v4", "serde"] }
 cfg-if = "1.0.0"
 anyhow = "1.0.79"
 axum-tenancy-core = { path = "../axum-tenancy-core" }
